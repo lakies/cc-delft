@@ -96,8 +96,31 @@ object Lint {
     override def reservedWords: List[String] =
       List("read", "+", "-")
 
-    //TODO your week 1 solution here
-    override def parseExpr(s: SExpr): Expr = ???
+    def parseOp(s: SExpr, isBinary: Boolean): PrimOp = s match {
+      case SSym(symbol) => symbol match {
+        case "-" => Minus()
+        case "+" if isBinary => Plus()
+        case _ => throw ParseException(s"Illegal symbol $symbol", s)
+      }
+      case _ => throw ParseException(s"Illegal binary operation type", s)
+
+    }
+
+    override def parseExpr(s: SExpr): Expr = s match {
+      case SList(list) => list match {
+        case Nil => throw ParseException("Empty list", s)
+        case List(a,b,c) => Prim(parseOp(a, true), List(parseExpr(b), parseExpr(c)))
+        case List(a, b) => Prim(parseOp(a, false), List(parseExpr(b)))
+        case List(a) => parseExpr(a)
+        case _ => throw ParseException("Too many symbols", s)
+      }
+      case SSym(symbol) => symbol match {
+        case "read" => Prim(Read(), List())
+        case _ => throw ParseException(s"Illegal symbol $symbol", s)
+      }
+      case SNum(num) => Num(num)
+      case _ => throw ParseException("Parse error", s)
+    }
 
     def toExpr(s: String): Expr = parseExpr(read(s))
   }
